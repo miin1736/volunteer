@@ -1,7 +1,7 @@
 next-env.d.ts
 next.config.js
-.next
+.next/
 node_modules
 *.log
 tsconfig.tsbuildinfo
-out
+out/
