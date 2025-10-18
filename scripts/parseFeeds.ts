@@ -94,10 +94,11 @@ export function normalize(raw: RawItem): Product {
     currency: "KRW",
     seller: (raw.seller ?? raw.merchant ?? "") as string,
     deeplink: (raw.link ?? raw.url ?? "") as string,
-    inStock:
-      ((raw.inStock ?? raw.stock ?? "true") as string)
-        .toLowerCase()
-        .trim() !== "false",
+    inStock: (() => {
+      const val = raw.inStock ?? raw.stock;
+      if (typeof val === "boolean") return val;
+      return (val as string ?? "true").toLowerCase().trim() !== "false";
+    })(),
     updatedAt: now,
     ...attrs,
   };
