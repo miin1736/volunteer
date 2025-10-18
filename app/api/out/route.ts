@@ -11,14 +11,19 @@ export async function GET(req: NextRequest) {
 
   if (!to) return NextResponse.json({ error: "missing to" }, { status: 400 });
 
-  // Log click event
+  // Log click event (best-effort, don't block redirect on failure)
   const logPath = path.join(process.cwd(), "logs", "clicks.jsonl");
-  await appendJsonl(logPath, {
-    pid,
-    to,
-    referer: req.headers.get("referer") ?? "",
-    timestamp: new Date().toISOString(),
-  });
+  try {
+    await appendJsonl(logPath, {
+      pid,
+      to,
+      referer: req.headers.get("referer") ?? "",
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Log to console but don't fail the request
+    console.error("Failed to log click event:", err);
+  }
 
   const redirectUrl = new URL(to);
   redirectUrl.searchParams.set("subId", `ewall_${pid}`);
