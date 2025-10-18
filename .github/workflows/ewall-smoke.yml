@@ -11,21 +11,46 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci || npm install
-      - run: npm run build
-      - name: Outbound redirect check
+
+      - name: Install deps
+        run: npm ci || npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: App smoke checks (landing, JSON-LD, outbound)
+        shell: bash
         run: |
-          npx http-server -p 3000 -c-1 || true
-          # Next start below; basic HEAD request to /api/out
-          npm run start &>/dev/null &
-          for i in {1..60}; do curl -s "http://localhost:3000" >/dev/null && break; sleep 1; done
+          set -euo pipefail
+          npm run start &> .next.log &
+          PID=$!
+          cleanup() { kill $PID || true; }
+          trap cleanup EXIT
+
+          echo "Waiting for server..."
+          for i in {1..60}; do
+            if curl -s "http://localhost:3000" >/dev/null; then break; fi
+            sleep 1
+          done
+
+          echo "Check: /BrandA/down returns 200"
+          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/BrandA/down")
+          echo "Status: $code"
+          test "$code" = "200"
+
+          echo "Check: JSON-LD present on landing"
+          curl -s "http://localhost:3000/BrandA/down" | grep -q 'application/ld+json' && echo "JSON-LD OK"
+
+          echo "Check: /api/out redirect contains subId"
           loc=$(curl -s -I "http://localhost:3000/api/out?to=https://example.com&pid=ex-001" | awk -F': ' '/^Location:/ {print $2}' | tr -d '\r')
           echo "Location: $loc"
-          test -n "$loc"
+          echo "$loc" | grep -q "subId=ewall_ex-001" && echo "Redirect OK"
+
       - name: Feed parser smoke
         run: |
           npx --yes ts-node --version || npm i -D ts-node typescript
