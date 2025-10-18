@@ -3,6 +3,10 @@ next-env.d.ts
 next.config.js
 .next/
 out/
+*.log
+
+# TypeScript
+*.tsbuildinfo
 
 # Dependencies
 node_modules/
