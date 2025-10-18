@@ -2,14 +2,8 @@
 next-env.d.ts
 next.config.js
 .next/
-out/
+node_modules
+out
+.data
+.DS_Store
 *.log
-
-# TypeScript
-*.tsbuildinfo
-
-# Dependencies
-node_modules/
-
-# Local analytics/click logs
-.data/

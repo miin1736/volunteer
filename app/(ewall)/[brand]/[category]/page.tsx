@@ -1,11 +1,20 @@
 import Filters from "@/components/Filters";
 import { getProducts } from "@/lib/search";
 import { buildProductJsonLd } from "@/lib/seo";
+import { getBrandCategoryCombos } from "@/lib/brands";
 
 type Props = {
   params: { brand: string; category: string };
   searchParams: Record<string, string | string[]>;
 };
+
+// ISR: revalidate every hour
+export const revalidate = 3600;
+
+// Static generation: pre-render all brand×category combos
+export async function generateStaticParams() {
+  return getBrandCategoryCombos();
+}
 
 export default async function Page({ params, searchParams }: Props) {
   const { brand, category } = params;
