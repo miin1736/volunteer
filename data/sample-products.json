@@ -1,0 +1,43 @@
+[
+  {
+    "id": "ex-001",
+    "brand": "BrandA",
+    "category": "down",
+    "title": "BrandA 다운 재킷 90/10 노후드 800FP",
+    "imageUrl": "https://via.placeholder.com/400x400.png?text=BrandA",
+    "price": 89000,
+    "originalPrice": 129000,
+    "discountRate": 31,
+    "currency": "KRW",
+    "seller": "RetailerX",
+    "deeplink": "https://example.com/p/ex-001",
+    "inStock": true,
+    "downType": "goose",
+    "downRatio": "90-10",
+    "fillPower": 800,
+    "hood": false,
+    "fit": "standard",
+    "shell": "nylon",
+    "updatedAt": "2025-10-18T00:00:00.000Z"
+  },
+  {
+    "id": "ex-002",
+    "brand": "BrandA",
+    "category": "down",
+    "title": "BrandA 덕다운 80/20 후드 레귤러핏",
+    "imageUrl": "https://via.placeholder.com/400x400.png?text=BrandA2",
+    "price": 119000,
+    "originalPrice": 199000,
+    "discountRate": 40,
+    "currency": "KRW",
+    "seller": "RetailerY",
+    "deeplink": "https://example.com/p/ex-002",
+    "inStock": true,
+    "downType": "duck",
+    "downRatio": "80-20",
+    "hood": true,
+    "fit": "regular",
+    "shell": "gore-tex",
+    "updatedAt": "2025-10-18T00:00:00.000Z"
+  }
+]
