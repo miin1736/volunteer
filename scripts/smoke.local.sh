@@ -47,7 +47,7 @@ echo "==> Feed parser check"
 if ! npx --yes ts-node -v >/dev/null 2>&1; then
   npm i -D ts-node typescript
 fi
-npx ts-node scripts/parseFeeds.ts data/sample-products.json out/products.json
+npx ts-node --esm scripts/parseFeeds.ts data/sample-products.json out/products.json
 test -f out/products.json && echo "Feed parser OK"
 
 echo "==> SMOKE PASSED"

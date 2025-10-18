@@ -17,7 +17,7 @@ try {
   Write-Host "==> Landing page check"
   $resp = Invoke-WebRequest "http://localhost:$Port/BrandA/down" -UseBasicParsing
   Write-Host ("GET /BrandA/down -> {0}" -f $resp.StatusCode)
-  if ($resp.StatusCode -ne 200) { Get-Content .\.next\server\pages.log -ErrorAction SilentlyContinue; exit 1 }
+  if ($resp.StatusCode -ne 200) { exit 1 }
 
   Write-Host "==> Filter/sort check"
   $resp = Invoke-WebRequest "http://localhost:$Port/BrandA/down?downRatio=90-10&sort=priceDesc" -UseBasicParsing
@@ -36,7 +36,6 @@ try {
   try {
     $resp = Invoke-WebRequest -Uri "http://localhost:$Port/api/out?to=https://example.com&pid=ex-001" -Method Get -MaximumRedirection 0 -ErrorAction Stop
   } catch {
-    # On 3xx with -MaximumRedirection 0, an exception is thrown; capture the Response
     $resp = $_.Exception.Response
   }
   $loc = $resp.Headers['Location']
@@ -45,7 +44,7 @@ try {
 
   Write-Host "==> Feed parser check"
   npx ts-node --version *> $null; if ($LASTEXITCODE -ne 0) { npm i -D ts-node typescript }
-  npx ts-node scripts/parseFeeds.ts data/sample-products.json out/products.json
+  npx ts-node --esm scripts/parseFeeds.ts data/sample-products.json out/products.json
   if (-Not (Test-Path "out/products.json")) { exit 1 } else { Write-Host "Feed parser OK" }
 
   Write-Host "==> SMOKE PASSED"
