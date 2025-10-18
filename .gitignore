@@ -1,6 +1,6 @@
 next-env.d.ts
 next.config.js
-.next
+.next/
 node_modules
 out
 .data
