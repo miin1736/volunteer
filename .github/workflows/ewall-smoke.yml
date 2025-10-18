@@ -1,0 +1,33 @@
+name: E wall Smoke
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci || npm install
+      - run: npm run build
+      - name: Outbound redirect check
+        run: |
+          npx http-server -p 3000 -c-1 || true
+          # Next start below; basic HEAD request to /api/out
+          npm run start &>/dev/null &
+          for i in {1..60}; do curl -s "http://localhost:3000" >/dev/null && break; sleep 1; done
+          loc=$(curl -s -I "http://localhost:3000/api/out?to=https://example.com&pid=ex-001" | awk -F': ' '/^Location:/ {print $2}' | tr -d '\r')
+          echo "Location: $loc"
+          test -n "$loc"
+      - name: Feed parser smoke
+        run: |
+          npx --yes ts-node --version || npm i -D ts-node typescript
+          npx ts-node scripts/parseFeeds.ts data/sample-products.json out/products.json
+          test -f out/products.json
