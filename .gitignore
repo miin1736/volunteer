@@ -1,4 +1,11 @@
+# Next.js
 next-env.d.ts
 next.config.js
-.next
-node_modules
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Local analytics/click logs
+.data/
