@@ -1,4 +1,4 @@
-// File: E:\Projects\app\(ewall)\[brand]\[category]\page.tsx
+// File: /home/runner/work/volunteer/volunteer/app/(ewall)/[brand]/[category]/page.tsx
 import * as entry from '../../../../../../app/(ewall)/[brand]/[category]/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
