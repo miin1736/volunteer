@@ -1,4 +1,4 @@
-// File: E:\Projects\app\(ewall)\layout.tsx
+// File: /home/runner/work/volunteer/volunteer/app/(ewall)/layout.tsx
 import * as entry from '../../../../app/(ewall)/layout.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
