@@ -7,4 +7,4 @@ out
 .data
 .DS_Store
 *.log
-logs
+logs*.tsbuildinfo
