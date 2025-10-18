@@ -44,10 +44,10 @@ echo "$loc" | grep -q 'subId=ewall_ex-001' || { echo "Server log:"; tail -n +1 .
 echo "Redirect OK"
 
 echo "==> Feed parser check"
-if ! npx --yes ts-node -v >/dev/null 2>&1; then
-  npm i -D ts-node typescript
+if ! npx --yes tsx -v >/dev/null 2>&1; then
+  npm i -D tsx
 fi
-npx ts-node scripts/parseFeeds.ts data/sample-products.json out/products.json
+npx tsx scripts/parseFeeds.ts data/sample-products.json out/products.json
 test -f out/products.json && echo "Feed parser OK"
 
 echo "==> SMOKE PASSED"

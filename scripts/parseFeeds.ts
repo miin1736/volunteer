@@ -4,6 +4,8 @@
  * - Output: normalized JSON ready for indexing
  */
 import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Product } from "@/lib/types";
 
 type RawItem = Record<string, string>;
@@ -95,7 +97,7 @@ export function normalize(raw: RawItem): Product {
     seller: (raw.seller ?? raw.merchant ?? "") as string,
     deeplink: (raw.link ?? raw.url ?? "") as string,
     inStock:
-      ((raw.inStock ?? raw.stock ?? "true") as string)
+      String(raw.inStock ?? raw.stock ?? "true")
         .toLowerCase()
         .trim() !== "false",
     updatedAt: now,
@@ -103,7 +105,11 @@ export function normalize(raw: RawItem): Product {
   };
 }
 
-if (require.main === module) {
+// ESM equivalent of require.main === module check
+const __filename = fileURLToPath(import.meta.url);
+const isMainModule = process.argv[1] === __filename || process.argv[1]?.endsWith('parseFeeds.ts');
+
+if (isMainModule) {
   const input = process.argv[2];
   const output = process.argv[3] ?? "out/products.json";
   if (!input) {
@@ -112,9 +118,9 @@ if (require.main === module) {
   }
   const raw: RawItem[] = JSON.parse(fs.readFileSync(input, "utf-8"));
   const products = raw.map(normalize);
-  require("node:fs").mkdirSync(require("node:path").dirname(output), {
+  fs.mkdirSync(path.dirname(output), {
     recursive: true,
   });
-  require("node:fs").writeFileSync(output, JSON.stringify(products, null, 2));
+  fs.writeFileSync(output, JSON.stringify(products, null, 2));
   console.log(`Wrote ${products.length} products to ${output}`);
 }
