@@ -12,11 +12,7 @@ export type Category = typeof CATEGORIES[number];
  * Get all brand×category combinations for static generation
  */
 export function getBrandCategoryCombos(): Array<{ brand: string; category: string }> {
-  const combos: Array<{ brand: string; category: string }> = [];
-  for (const brand of BRANDS) {
-    for (const category of CATEGORIES) {
-      combos.push({ brand, category });
-    }
-  }
-  return combos;
+  return BRANDS.flatMap(brand => 
+    CATEGORIES.map(category => ({ brand, category }))
+  );
 }
