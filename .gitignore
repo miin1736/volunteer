@@ -2,5 +2,7 @@ next-env.d.ts
 next.config.js
 .next
 node_modules
-tsconfig.tsbuildinfo
-logs
+out
+.data
+.DS_Store
+*.log
