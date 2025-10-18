@@ -33,23 +33,26 @@ jobs:
           trap cleanup EXIT
 
           echo "Waiting for server..."
-          for i in {1..60}; do
-            if curl -s "http://localhost:3000" >/dev/null; then break; fi
+          for i in {1..90}; do
+            if curl -sf "http://localhost:3000" > /dev/null; then break; fi
             sleep 1
           done
 
           echo "Check: /BrandA/down returns 200"
           code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/BrandA/down")
           echo "Status: $code"
-          test "$code" = "200"
+          test "$code" = "200" || { echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
 
           echo "Check: JSON-LD present on landing"
-          curl -s "http://localhost:3000/BrandA/down" | grep -q 'application/ld+json' && echo "JSON-LD OK"
+          page=$(curl -s --compressed "http://localhost:3000/BrandA/down" | tr -d '\r')
+          echo "$page" | grep -qi 'application/ld+json' || { echo "First 200 lines of HTML:"; echo "$page" | sed -n '1,200p'; echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
+          echo "JSON-LD OK"
 
-          echo "Check: /api/out redirect contains subId"
-          loc=$(curl -s -I "http://localhost:3000/api/out?to=https://example.com&pid=ex-001" | awk -F': ' '/^Location:/ {print $2}' | tr -d '\r')
+          echo "Check: /api/out redirect contains subId (GET header dump)"
+          loc=$(curl -s -D - -o /dev/null "http://localhost:3000/api/out?to=https://example.com&pid=ex-001" | tr -d '\r' | awk 'tolower($0) ~ /^location:/ {sub(/^[^:]*:[[:space:]]*/, "", $0); print; exit}')
           echo "Location: $loc"
-          echo "$loc" | grep -q "subId=ewall_ex-001" && echo "Redirect OK"
+          echo "$loc" | grep -q 'subId=ewall_ex-001' || { echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
+          echo "Redirect OK"
 
       - name: Feed parser smoke
         run: |

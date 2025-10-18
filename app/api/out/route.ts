@@ -1,32 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "node:fs";
 import path from "node:path";
-import { appendJsonl } from "@/lib/log";
 
 export const runtime = "nodejs";
 
-export async function GET(req: NextRequest) {
-  const url = new URL(req.url);
-  const to = url.searchParams.get("to");
-  const pid = url.searchParams.get("pid") ?? "unknown";
+const LOG_DIR = path.join(process.cwd(), ".data");
+const LOG_FILE = path.join(LOG_DIR, "clicks.ndjson");
+const MAX_FIELD = 2048;
 
-  if (!to) return NextResponse.json({ error: "missing to" }, { status: 400 });
+function trunc(v: string | null | undefined) {
+  if (!v) return undefined;
+  const s = String(v);
+  return s.length > MAX_FIELD ? s.slice(0, MAX_FIELD) : s;
+}
 
-  // Log click event (best-effort, don't block redirect on failure)
-  const logPath = path.join(process.cwd(), "logs", "clicks.jsonl");
+async function logClickSafe(entry: Record<string, unknown>) {
   try {
-    await appendJsonl(logPath, {
-      pid,
-      to,
-      referer: req.headers.get("referer") ?? "",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (err) {
-    // Log to console but don't fail the request
-    console.error("Failed to log click event:", err);
+    await fs.promises.mkdir(LOG_DIR, { recursive: true });
+    await fs.promises.appendFile(LOG_FILE, JSON.stringify(entry) + "\n", "utf8");
+  } catch {
+    // read-only FS or other error: do not block redirect
+    console.log("[click-log-fallback]", entry);
   }
+}
 
-  const redirectUrl = new URL(to);
-  redirectUrl.searchParams.set("subId", `ewall_${pid}`);
+function buildRedirectUrl(base: URL, toParam: string | null, pid: string | null) {
+  let dest: URL;
+  try {
+    dest = new URL(toParam ?? "");
+  } catch {
+    dest = new URL("/", base);
+  }
+  const subId = `ewall_${pid ?? "unknown"}`;
+  dest.searchParams.set("subId", subId);
+  return { dest, subId };
+}
 
-  return NextResponse.redirect(redirectUrl.toString(), { status: 302 });
+async function handle(req: NextRequest) {
+  const { searchParams } = req.nextUrl;
+  const to = searchParams.get("to");
+  const pid = searchParams.get("pid");
+
+  const { dest, subId } = buildRedirectUrl(req.nextUrl, to, pid);
+
+  // Best-effort logging, never blocks redirect
+  const entry = {
+    ts: new Date().toISOString(),
+    pid: trunc(pid ?? "unknown"),
+    to: trunc(dest.toString()),
+    subId: trunc(subId),
+    referer: trunc(req.headers.get("referer")),
+    userAgent: trunc(req.headers.get("user-agent")),
+    ip: trunc(req.headers.get("x-forwarded-for") ?? undefined),
+    method: req.method,
+    query: {
+      utm_source: trunc(searchParams.get("utm_source")),
+      utm_medium: trunc(searchParams.get("utm_medium")),
+      utm_campaign: trunc(searchParams.get("utm_campaign")),
+      utm_content: trunc(searchParams.get("utm_content")),
+      utm_term: trunc(searchParams.get("utm_term")),
+    },
+  };
+  // fire-and-forget
+  logClickSafe(entry).catch(() => {});
+
+  return NextResponse.redirect(dest, 307);
+}
+
+export async function GET(req: NextRequest) {
+  return handle(req);
+}
+
+export async function HEAD(req: NextRequest) {
+  return handle(req);
 }
