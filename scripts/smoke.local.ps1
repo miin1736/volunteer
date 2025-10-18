@@ -43,8 +43,7 @@ try {
   if (-not $loc -or ($loc -notmatch "subId=ewall_ex-001")) { exit 1 } else { Write-Host "Redirect OK" }
 
   Write-Host "==> Feed parser check"
-  npx ts-node --version *> $null; if ($LASTEXITCODE -ne 0) { npm i -D ts-node typescript }
-  npx ts-node --esm scripts/parseFeeds.ts data/sample-products.json out/products.json
+  npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
   if (-Not (Test-Path "out/products.json")) { exit 1 } else { Write-Host "Feed parser OK" }
 
   Write-Host "==> SMOKE PASSED"

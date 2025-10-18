@@ -58,6 +58,6 @@ jobs:
 
       - name: Feed parser smoke
         run: |
-          npx --yes ts-node --version || npm i -D ts-node typescript
-          npx ts-node --esm scripts/parseFeeds.ts data/sample-products.json out/products.json
+          # Ensure ts-node and typescript are available just for this run
+          npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
           test -f out/products.json

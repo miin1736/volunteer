@@ -44,10 +44,8 @@ echo "$loc" | grep -q 'subId=ewall_ex-001' || { echo "Server log:"; tail -n +1 .
 echo "Redirect OK"
 
 echo "==> Feed parser check"
-if ! npx --yes tsx -v >/dev/null 2>&1; then
-  npm i -D tsx
-fi
-npx ts-node --esm scripts/parseFeeds.ts data/sample-products.json out/products.json
+# Use ephemeral packages to avoid local devDeps requirements
+npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
 test -f out/products.json && echo "Feed parser OK"
 
 echo "==> SMOKE PASSED"
