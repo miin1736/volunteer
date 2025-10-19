@@ -97,7 +97,7 @@ export function normalize(raw: RawItem): Product {
     seller: (raw.seller ?? raw.merchant ?? "") as string,
     deeplink: (raw.link ?? raw.url ?? "") as string,
     inStock:
-      ((raw.inStock ?? raw.stock ?? "true") as string)
+      String(raw.inStock ?? raw.stock ?? "true")
         .toLowerCase()
         .trim() !== "false",
     updatedAt: now,
