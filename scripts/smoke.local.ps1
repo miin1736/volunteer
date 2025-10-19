@@ -43,6 +43,7 @@ try {
   if (-not $loc -or ($loc -notmatch "subId=ewall_ex-001")) { exit 1 } else { Write-Host "Redirect OK" }
 
   Write-Host "==> Feed parser check"
+  $env:TS_NODE_PROJECT = "scripts/tsconfig.scripts.json"
   npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
   if (-Not (Test-Path "out/products.json")) { exit 1 } else { Write-Host "Feed parser OK" }
 

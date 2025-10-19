@@ -45,6 +45,7 @@ echo "Redirect OK"
 
 echo "==> Feed parser check"
 # Use ephemeral packages to avoid local devDeps requirements
+export TS_NODE_PROJECT=scripts/tsconfig.scripts.json
 npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
 test -f out/products.json && echo "Feed parser OK"
 
