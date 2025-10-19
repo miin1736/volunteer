@@ -4,7 +4,9 @@
  * - Output: normalized JSON ready for indexing
  */
 import fs from "node:fs";
-import type { Product } from "@/lib/types";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import type { Product } from "../lib/types";
 
 type RawItem = Record<string, string>;
 
@@ -103,7 +105,8 @@ export function normalize(raw: RawItem): Product {
   };
 }
 
-if (require.main === module) {
+// CLI entry (pure ESM): run only when this file is the entry point
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const input = process.argv[2];
   const output = process.argv[3] ?? "out/products.json";
   if (!input) {
@@ -112,9 +115,7 @@ if (require.main === module) {
   }
   const raw: RawItem[] = JSON.parse(fs.readFileSync(input, "utf-8"));
   const products = raw.map(normalize);
-  require("node:fs").mkdirSync(require("node:path").dirname(output), {
-    recursive: true,
-  });
-  require("node:fs").writeFileSync(output, JSON.stringify(products, null, 2));
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, JSON.stringify(products, null, 2));
   console.log(`Wrote ${products.length} products to ${output}`);
 }
