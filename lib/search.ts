@@ -42,7 +42,15 @@ export async function getProducts(input: SearchInput): Promise<{ items: Product[
 
   // Backfill normalized attributes if missing using centralized extractor
   all = all.map((p) => {
-    const hasAttrs = p.downType || p.downRatio || p.fillPower || p.hood !== undefined || p.fit || p.shell;
+    // Check if category-specific attributes exist
+    let hasAttrs = false;
+    if (p.category === "down") {
+      const down = p as import("./types").DownProduct;
+      hasAttrs = !!(down.downType || down.downRatio || down.fillPower || down.hood !== undefined || down.fit || down.shell);
+    } else if ("fit" in p || "shell" in p) {
+      hasAttrs = true;
+    }
+    
     if (hasAttrs) return p;
     const text = [p.title, p.brand, p.category].filter(Boolean).join(" ");
     const attrs = extractAttributes(text);
@@ -63,11 +71,11 @@ export async function getProducts(input: SearchInput): Promise<{ items: Product[
       p.category.toLowerCase() === input.category.toLowerCase()
   );
 
-  if (downType) items = items.filter((p) => p.downType === downType);
-  if (downRatio) items = items.filter((p) => p.downRatio === downRatio);
-  if (hood !== undefined) items = items.filter((p) => p.hood === hood);
-  if (fit) items = items.filter((p) => p.fit === fit);
-  if (shell) items = items.filter((p) => p.shell === shell);
+  if (downType) items = items.filter((p) => p.category === "down" && (p as import("./types").DownProduct).downType === downType);
+  if (downRatio) items = items.filter((p) => p.category === "down" && (p as import("./types").DownProduct).downRatio === downRatio);
+  if (hood !== undefined) items = items.filter((p) => (p.category === "down" || p.category === "coat") && (p as any).hood === hood);
+  if (fit) items = items.filter((p) => "fit" in p && (p as any).fit === fit);
+  if (shell) items = items.filter((p) => "shell" in p && (p as any).shell === shell);
 
   sortItems(items, sort);
 

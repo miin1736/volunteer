@@ -55,11 +55,25 @@ function matchesAlert(p: Product, a: Alert): boolean {
   const c = a.conditions || {};
   if (typeof c.priceBelow === "number" && !(p.price <= c.priceBelow)) return false;
   if (typeof c.discountAtLeast === "number" && !(p.discountRate >= c.discountAtLeast)) return false;
-  if (c.downRatio && p.downRatio !== c.downRatio) return false;
-  if (typeof c.fillPowerMin === "number" && !(typeof p.fillPower === "number" && p.fillPower >= c.fillPowerMin)) return false;
-  if (typeof c.hood === "boolean" && p.hood !== c.hood) return false;
-  if (c.fit && p.fit !== c.fit) return false;
-  if (c.shell && p.shell !== c.shell) return false;
+  
+  // Category-specific attribute checks
+  if (p.category === "down") {
+    const down = p as import("../../lib/types").DownProduct;
+    if (c.downRatio && down.downRatio !== c.downRatio) return false;
+    if (typeof c.fillPowerMin === "number" && !(typeof down.fillPower === "number" && down.fillPower >= c.fillPowerMin)) return false;
+    if (typeof c.hood === "boolean" && down.hood !== c.hood) return false;
+    if (c.fit && down.fit !== c.fit) return false;
+    if (c.shell && down.shell !== c.shell) return false;
+  }
+  
+  // Generic fit/shell check for other categories
+  if (p.category !== "down" && p.category !== "jeans" && "fit" in p) {
+    if (c.fit && (p as any).fit !== c.fit) return false;
+  }
+  if (p.category !== "down" && p.category !== "jeans" && "shell" in p) {
+    if (c.shell && (p as any).shell !== c.shell) return false;
+  }
+  
   return true;
 }
 
