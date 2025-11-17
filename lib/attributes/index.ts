@@ -62,6 +62,3 @@ export function extractAttributes(text: string): NormalizedAttributes {
 
   return { downType, downRatio, hood, fit, shell, fillPower };
 }
-
-// Default export for CJS/ESM interop in tooling (ts-node/esm)
-export default { extractAttributes };

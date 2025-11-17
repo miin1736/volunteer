@@ -14,6 +14,3 @@ export async function appendJsonl(filePath: string, payload: unknown): Promise<v
   const line = JSON.stringify(payload) + "\n";
   await fs.appendFile(filePath, line, "utf-8");
 }
-
-// Default export for compatibility when imported as CommonJS by loaders
-export default { appendJsonl };
