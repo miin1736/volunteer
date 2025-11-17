@@ -62,15 +62,19 @@ jobs:
             # fallback to known sample route
             target="http://localhost:3000/BrandA/down"
           fi
-          echo "Target route: $target"
+          # Force local hostname even if sitemap contains absolute URLs
+          pathOnly=$(echo "$target" | sed -E 's#^https?://[^/]*##')
+          if [ -z "${pathOnly:-}" ]; then pathOnly="/"; fi
+          finalTarget="http://localhost:3000$pathOnly"
+          echo "Target route: $finalTarget (from $target)"
 
           echo "Check: target route returns 200"
-          code=$(curl -s -o /dev/null -w "%{http_code}" "$target")
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$finalTarget")
           echo "Status: $code"
           test "$code" = "200" || { echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
 
           echo "Check: JSON-LD present on landing + schema sanity"
-          page=$(curl -s --compressed "$target" | tr -d '\r')
+          page=$(curl -s --compressed "$finalTarget" | tr -d '\r')
           echo "$page" | grep -qi 'application/ld+json' || { echo "First 200 lines of HTML:"; echo "$page" | sed -n '1,200p'; echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
           echo "JSON-LD OK"
 
