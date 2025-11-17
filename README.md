@@ -1,49 +1,55 @@
-## Summary
-Add initial E wall MVP scaffolding:
-- brand×category landing with advanced filters
-- outbound tracking endpoint
-- feed parser + cron stub
-- product schema (SQL)
-- price-drop email template
-- demo dataset
+# 이월(E wall) - 아웃도어 이월 상품 검색 서비스
 
-Closes #3
-Closes #4
+## 프로젝트 소개
 
-## Scope
-1) Next.js pages and filters
-- app/(ewall)/[brand]/[category]/page.tsx: server-render list with filters/sort (downType, downRatio, hood, fit, shell, sort)
-- components/Filters.tsx: client component to update URL params
-- JSON-LD (Product) for up to 20 items
+이월(E wall)은 아웃도어 및 고품질 브랜드의 이월 상품을 한 곳에서 비교하고 찾을 수 있는 서비스입니다.
 
-2) Types/SEO helpers
-- lib/types.ts, lib/seo.ts
-- lib/search.ts: demo in-memory filtering using data/sample-products.json
+## 주요 기능
 
-3) Outbound tracking
-- /api/out: 302 redirect with subId=ewall_<pid> (TODO: persist click)
+- 🔍 **브랜드×카테고리별 검색**: 원하는 브랜드와 카테고리 조합으로 이월 상품 탐색
+- 🎯 **고급 필터**: 다운 비율, 소재, 핏, 후드 등 상세한 속성 필터링
+- 💰 **가격 비교**: 여러 판매처의 가격을 한눈에 비교
+- 🔔 **가격 알림**: 관심 상품의 가격 변동 시 이메일 알림
+- 🌐 **SEO 최적화**: 검색 엔진 친화적인 구조화 데이터 및 사이트맵
 
-4) Feed parsing + sync
-- scripts/parseFeeds.ts (normalize JSON feed)
-- scripts/cron/syncOffers.ts (stub)
+## 기술 스택
 
-5) DB schema
-- db/schema.sql (brand/product tables + indexes)
+- Next.js 14, React 18, TypeScript
+- Node.js 18-22
 
-6) Email template
-- emails/price-drop.html
+## 빠른 시작
 
-7) Sample data
-- data/sample-products.json (BrandA/down)
+```bash
+# 패키지 설치
+npm install
 
-## Acceptance Criteria
-- Landing renders and filters/sorts via URL params
-- Filters update URL without full reload
-- Product JSON-LD present for up to 20 items
-- /api/out appends subId and redirects
-- parseFeeds.ts normalizes JSON → products.json
-- db/schema.sql applies without errors
+# 개발 서버 실행
+npm run dev
 
-## Notes
-- No real DB/index wiring or feed API in this PR (TODOs left)
-- No env vars required; minimal UI
+# 프로덕션 빌드
+npm run build
+npm start
+
+# 타입 체크
+npm run typecheck
+```
+
+## 프로젝트 문서
+
+전체 프로젝트 개요, 등록된 이슈, 개발 로드맵 등 자세한 내용은 [PROJECT.md](./PROJECT.md)를 참조하세요.
+
+## 개발 현황
+
+현재 MVP 개발이 진행 중이며, 주요 기능별 진행 상황은 다음과 같습니다:
+
+- ✅ 랜딩 페이지 및 필터 UI
+- ✅ SEO 최적화 (sitemap, robots, JSON-LD)
+- ✅ CI/CD 스모크 테스트
+- 🔨 데이터 파이프라인 구축
+- 🔨 알림 기능 백엔드
+
+자세한 내용은 [GitHub Issues](https://github.com/miin1736/volunteer/issues)를 참조하세요.
+
+## 라이선스
+
+Private
