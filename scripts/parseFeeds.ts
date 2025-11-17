@@ -8,8 +8,9 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Product, NormalizedSnapshot } from "../lib/types";
 import { extractAttributes } from "../lib/attributes";
-// Use explicit extension for ESM resolution under ts-node/esm
-import { appendJsonl } from "../lib/log.ts";
+// Default-import bridge for CommonJS/ESM interop under ts-node/esm
+import log from "../lib/log";
+const { appendJsonl } = log as { appendJsonl: (filePath: string, payload: unknown) => Promise<void> };
 
 type RawItem = Record<string, string>;
 
