@@ -7,7 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Product, NormalizedSnapshot } from "../lib/types";
-import { extractAttributes } from "../lib/attributes";
+// Default-import bridge because ts-node/esm may treat directory module as CJS
+import attributes from "../lib/attributes";
+const { extractAttributes } = attributes as { extractAttributes: (text: string) => any };
 // Default-import bridge for CommonJS/ESM interop under ts-node/esm
 import log from "../lib/log";
 const { appendJsonl } = log as { appendJsonl: (filePath: string, payload: unknown) => Promise<void> };
