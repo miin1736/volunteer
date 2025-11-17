@@ -7,6 +7,13 @@ on:
 
 jobs:
   smoke:
+    concurrency:
+      group: ewall-smoke-${{ github.ref }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -14,16 +21,24 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
           cache: 'npm'
+
+      - name: Install jq (for JSON checks)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
 
       - name: Install deps
         run: npm ci || npm install
 
+      - name: Typecheck
+        run: npm run typecheck
+
       - name: Build
         run: npm run build
 
-      - name: App smoke checks (landing, JSON-LD, outbound)
+      - name: App smoke checks (dynamic route, JSON-LD, outbound)
         shell: bash
         run: |
           set -euo pipefail
@@ -38,15 +53,35 @@ jobs:
             sleep 1
           done
 
-          echo "Check: /BrandA/down returns 200"
-          code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:3000/BrandA/down")
+          echo "Fetch sitemap and choose first listing route dynamically"
+          sitemap=$(curl -s --compressed "http://localhost:3000/sitemap.xml")
+          echo "$sitemap" | sed -n '1,120p' > sitemap.sample.xml || true
+          # pick first URL that looks like /Brand/Category
+          target=$(echo "$sitemap" | tr -d '\r' | grep -oE '<loc>[^<]+' | sed 's#<loc>##' | grep -E "/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+$" | head -n 1 || true)
+          if [ -z "${target:-}" ]; then
+            # fallback to known sample route
+            target="http://localhost:3000/BrandA/down"
+          fi
+          echo "Target route: $target"
+
+          echo "Check: target route returns 200"
+          code=$(curl -s -o /dev/null -w "%{http_code}" "$target")
           echo "Status: $code"
           test "$code" = "200" || { echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
 
-          echo "Check: JSON-LD present on landing"
-          page=$(curl -s --compressed "http://localhost:3000/BrandA/down" | tr -d '\r')
+          echo "Check: JSON-LD present on landing + schema sanity"
+          page=$(curl -s --compressed "$target" | tr -d '\r')
           echo "$page" | grep -qi 'application/ld+json' || { echo "First 200 lines of HTML:"; echo "$page" | sed -n '1,200p'; echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
           echo "JSON-LD OK"
+
+          # extract first JSON-LD block content and validate basic fields
+          echo "$page" > page.sample.html
+          jsonld=$(echo "$page" | awk 'BEGIN{RS="</script>";FS="<script[^>]*>"} /application\/ld\+json/{print $2; exit}')
+          if [ -n "${jsonld:-}" ]; then
+            echo "$jsonld" | jq '.' > jsonld.sample.json || true
+            # allow array or single object; require at least one Product with offers
+            echo "$jsonld" | jq 'if type=="array" then any(.[]; .["@type"]=="Product") else .["@type"]=="Product" end' | grep -qi true || { echo "JSON-LD Product type missing"; exit 1; }
+          fi
 
           echo "Check: /api/out redirect contains subId (GET header dump)"
           loc=$(curl -s -D - -o /dev/null "http://localhost:3000/api/out?to=https://example.com&pid=ex-001" \
@@ -56,9 +91,37 @@ jobs:
           echo "$loc" | grep -q 'subId=ewall_ex-001' || { echo "Server log:"; tail -n +1 .next.log || true; exit 1; }
           echo "Redirect OK"
 
+          echo "Check: sitemap URL count meets minimum"
+          : "${MIN_SITEMAP_URLS:=1}"
+          url_count=$(echo "$sitemap" | tr -d '\r' | grep -o '<loc>' | wc -l | awk '{print $1}')
+          echo "sitemap URL count: $url_count (min: $MIN_SITEMAP_URLS)"
+          if [ "$url_count" -lt "$MIN_SITEMAP_URLS" ]; then
+            echo "Sitemap URL count below minimum threshold"
+            exit 1
+          fi
+
       - name: Feed parser smoke
         run: |
           # Ensure ts-node and typescript are available just for this run
           export TS_NODE_PROJECT=scripts/tsconfig.scripts.json
           npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/parseFeeds.ts data/sample-products.json out/products.json
           test -f out/products.json
+          # Basic schema & count check
+          jq -e '.products and (.count | tonumber) >= 1 and (.products | length) >= 1' out/products.json > /dev/null
+
+      - name: Filter smoke (attribute-based)
+        run: |
+          export TS_NODE_PROJECT=scripts/tsconfig.scripts.json
+          npx --yes -p ts-node -p typescript node --loader ts-node/esm scripts/smoke/filters.ts
+
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-artifacts-node${{ matrix.node }}
+          path: |
+            .next.log
+            sitemap.sample.xml
+            page.sample.html
+            jsonld.sample.json
+            out/products.json
