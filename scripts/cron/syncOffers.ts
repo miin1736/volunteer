@@ -9,7 +9,7 @@ import fs from "fs/promises";
 import path from "path";
 import { pathToFileURL } from "url";
 import type { Product, NormalizedSnapshot, Alert } from "../../lib/types";
-import { normalize } from "../parseFeeds";
+import { normalize } from "../parseFeeds.ts";
 
 type RawItem = Record<string, string>;
 

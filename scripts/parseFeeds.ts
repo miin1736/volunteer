@@ -8,7 +8,8 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import type { Product, NormalizedSnapshot } from "../lib/types";
 import { extractAttributes } from "../lib/attributes";
-import { appendJsonl } from "../lib/log";
+// Use explicit extension for ESM resolution under ts-node/esm
+import { appendJsonl } from "../lib/log.ts";
 
 type RawItem = Record<string, string>;
 
