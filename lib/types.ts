@@ -28,3 +28,28 @@ export type SearchInput = {
   category: string;
   filters: Record<string, string | string[]>;
 };
+
+export type NormalizedSnapshot = {
+  generatedAt: string;
+  count: number;
+  products: Product[];
+};
+
+export type AlertCondition = {
+  priceBelow?: number;
+  discountAtLeast?: number;
+  downRatio?: Product["downRatio"];
+  fillPowerMin?: number;
+  hood?: boolean;
+  fit?: Product["fit"];
+  shell?: Product["shell"];
+};
+
+export type Alert = {
+  id: string;
+  email: string;
+  brand: string;
+  category: string;
+  conditions: AlertCondition;
+  createdAt: string;
+};

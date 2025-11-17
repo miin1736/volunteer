@@ -1,10 +1,11 @@
 import { MetadataRoute } from "next";
 import { getBrandCategoryCombos } from "@/lib/brands";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://example.com";
-  
-  const brandCategoryPages = getBrandCategoryCombos().map(({ brand, category }) => ({
+  const combos = await getBrandCategoryCombos();
+
+  const brandCategoryPages = combos.map(({ brand, category }) => ({
     url: `${baseUrl}/${brand}/${category}`,
     lastModified: new Date(),
     changeFrequency: "daily" as const,

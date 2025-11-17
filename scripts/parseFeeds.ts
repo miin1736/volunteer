@@ -6,69 +6,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import type { Product } from "../lib/types";
+import type { Product, NormalizedSnapshot } from "../lib/types";
+import { extractAttributes } from "../lib/attributes";
+import { appendJsonl } from "../lib/log";
 
 type RawItem = Record<string, string>;
 
-type Attrs = {
-  downType?: "goose" | "duck" | "synthetic";
-  downRatio?: "90-10" | "80-20" | "70-30";
-  hood?: boolean;
-  fit?: "standard" | "regular" | "loose";
-  shell?: "gore-tex" | "nylon" | "poly" | string;
-  fillPower?: number;
-};
-
-function extractAttributes(text: string): Attrs {
-  const t = text.toLowerCase();
-
-  const downType =
-    /구스|goose/.test(t)
-      ? ("goose" as const)
-      : /덕|duck/.test(t)
-      ? ("duck" as const)
-      : /synthetic|합성/.test(t)
-      ? ("synthetic" as const)
-      : undefined;
-
-  const downRatio =
-    /90[\/\-]10/.test(t)
-      ? ("90-10" as const)
-      : /80[\/\-]20/.test(t)
-      ? ("80-20" as const)
-      : /70[\/\-]30/.test(t)
-      ? ("70-30" as const)
-      : undefined;
-
-  const hood = /(노후드|no[-\s]?hood)/.test(t)
-    ? false
-    : /(후드|hood)/.test(t)
-    ? true
-    : undefined;
-
-  const fit =
-    /(스탠다드|standard)/.test(t)
-      ? ("standard" as const)
-      : /(레귤러|regular)/.test(t)
-      ? ("regular" as const)
-      : /(루즈|loose)/.test(t)
-      ? ("loose" as const)
-      : undefined;
-
-  const shell =
-    /(gore[-\s]?tex|고어텍스)/.test(t)
-      ? ("gore-tex" as const)
-      : /(나일론|nylon)/.test(t)
-      ? ("nylon" as const)
-      : /(폴리|poly)/.test(t)
-      ? ("poly" as const)
-      : undefined;
-
-  const fpMatch = /(\d{3,4})\s?fp/.exec(t);
-  const fillPower = fpMatch ? Number(fpMatch[1]) : undefined;
-
-  return { downType, downRatio, hood, fit, shell, fillPower };
-}
 
 export function normalize(raw: RawItem): Product {
   const price = Number(raw.price ?? raw.salePrice ?? 0);
@@ -107,15 +50,38 @@ export function normalize(raw: RawItem): Product {
 
 // CLI entry (pure ESM): run only when this file is the entry point
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  const input = process.argv[2];
-  const output = process.argv[3] ?? "out/products.json";
-  if (!input) {
-    console.error("Usage: ts-node scripts/parseFeeds.ts <input.json> [output.json]");
+  (async () => {
+    const input = process.argv[2];
+    const output = process.argv[3] ?? "out/products.normalized.json";
+    if (!input) {
+      console.error("Usage: ts-node scripts/parseFeeds.ts <input.json> [output.json]");
+      process.exit(1);
+    }
+    const raw: RawItem[] = JSON.parse(fs.readFileSync(input, "utf-8"));
+    const products: Product[] = [];
+    let failures = 0;
+    for (const r of raw) {
+      try {
+        products.push(normalize(r));
+      } catch (e: any) {
+        failures++;
+        await appendJsonl("out/logs/normalize.jsonl", {
+          level: "warn",
+          reason: e?.message ?? String(e),
+          item: r,
+        });
+      }
+    }
+    const snapshot: NormalizedSnapshot = {
+      generatedAt: new Date().toISOString(),
+      count: products.length,
+      products,
+    };
+    fs.mkdirSync(path.dirname(output), { recursive: true });
+    fs.writeFileSync(output, JSON.stringify(snapshot, null, 2));
+    console.log(`Wrote ${products.length} products to ${output} (failures: ${failures})`);
+  })().catch((err) => {
+    console.error(err);
     process.exit(1);
-  }
-  const raw: RawItem[] = JSON.parse(fs.readFileSync(input, "utf-8"));
-  const products = raw.map(normalize);
-  fs.mkdirSync(path.dirname(output), { recursive: true });
-  fs.writeFileSync(output, JSON.stringify(products, null, 2));
-  console.log(`Wrote ${products.length} products to ${output}`);
+  });
 }

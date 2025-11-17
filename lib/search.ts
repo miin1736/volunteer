@@ -1,6 +1,8 @@
-import fs from "node:fs/promises";
-import path from "node:path";
+/// <reference types="node" />
+import fs from "fs/promises";
+import path from "path";
 import { Product, SearchInput } from "./types";
+import { extractAttributes } from "./attributes";
 
 function toBool(v?: string | null) {
   if (v == null) return undefined;
@@ -25,9 +27,27 @@ function sortItems(items: Product[], sort?: string) {
 }
 
 export async function getProducts(input: SearchInput): Promise<{ items: Product[]; total: number }> {
-  const file = path.join(process.cwd(), "data", "sample-products.json");
-  const raw = await fs.readFile(file, "utf-8");
-  const all: Product[] = JSON.parse(raw);
+  // Prefer normalized snapshot if present; fall back to sample data
+  let all: Product[] = [];
+  const normalizedPath = path.join(process.cwd(), "out", "products.normalized.json");
+  const samplePath = path.join(process.cwd(), "data", "sample-products.json");
+  try {
+    const raw = await fs.readFile(normalizedPath, "utf-8");
+    const parsed = JSON.parse(raw);
+    all = Array.isArray(parsed) ? (parsed as Product[]) : (parsed.products as Product[]);
+  } catch {
+    const raw = await fs.readFile(samplePath, "utf-8");
+    all = JSON.parse(raw) as Product[];
+  }
+
+  // Backfill normalized attributes if missing using centralized extractor
+  all = all.map((p) => {
+    const hasAttrs = p.downType || p.downRatio || p.fillPower || p.hood !== undefined || p.fit || p.shell;
+    if (hasAttrs) return p;
+    const text = [p.title, p.brand, p.category].filter(Boolean).join(" ");
+    const attrs = extractAttributes(text);
+    return { ...p, ...attrs } as Product;
+  });
 
   const f = input.filters || {};
   const downType = typeof f.downType === "string" ? f.downType : undefined;

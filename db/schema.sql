@@ -29,3 +29,37 @@ create table if not exists product (
 create index if not exists idx_product_brand_cat on product(brand, category);
 create index if not exists idx_product_discount on product(discount_rate desc);
 create index if not exists idx_product_updated on product(updated_at desc);
+
+-- Contacts for alerts (email-based MVP)
+create table if not exists contact (
+  id serial primary key,
+  email text unique not null,
+  created_at timestamptz not null default now()
+);
+
+-- Saved alerts (user interest)
+create table if not exists alert (
+  id serial primary key,
+  contact_id integer not null references contact(id) on delete cascade,
+  brand text not null,
+  category text not null,
+  price_below integer,
+  discount_at_least integer,
+  down_ratio text,
+  fill_power_min integer,
+  hood boolean,
+  fit text,
+  shell text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_alert_contact on alert(contact_id);
+create index if not exists idx_alert_scope on alert(brand, category);
+
+-- Outbound click tracking (for retention metrics)
+create table if not exists click (
+  id serial primary key,
+  product_id text not null,
+  sub_id text,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_click_product on click(product_id);

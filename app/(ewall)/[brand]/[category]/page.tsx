@@ -37,27 +37,31 @@ export default async function Page({ params, searchParams }: Props) {
 
       <section className="grid">
         {items.map((p) => (
-          <a
-            key={p.id}
-            href={`/api/out?to=${encodeURIComponent(p.deeplink)}&pid=${p.id}`}
-            rel="nofollow sponsored"
-          >
-            <article>
+          <article key={p.id}>
+            <a href={`/${params.brand}/${params.category}/${p.id}`}>
               <img src={p.imageUrl} alt={p.title} loading="lazy" />
               <h3>{p.title}</h3>
-              <p>
-                {p.price.toLocaleString()}원{" "}
-                {p.discountRate ? <small>({p.discountRate}%↓)</small> : null}
-              </p>
-              <ul>
-                {p.downRatio && <li>다운비율 {p.downRatio}</li>}
-                {p.fillPower && <li>필파워 {p.fillPower}</li>}
-                {p.hood !== undefined && <li>{p.hood ? "후드" : "노후드"}</li>}
-                {p.fit && <li>{p.fit}</li>}
-                {p.shell && <li>{p.shell}</li>}
-              </ul>
-            </article>
-          </a>
+            </a>
+            <p>
+              {p.price.toLocaleString()}원{" "}
+              {p.discountRate ? <small>({p.discountRate}%↓)</small> : null}
+            </p>
+            <ul>
+              {p.downRatio && <li>다운비율 {p.downRatio}</li>}
+              {p.fillPower && <li>필파워 {p.fillPower}</li>}
+              {p.hood !== undefined && <li>{p.hood ? "후드" : "노후드"}</li>}
+              {p.fit && <li>{p.fit}</li>}
+              {p.shell && <li>{p.shell}</li>}
+            </ul>
+            <p>
+              <a
+                href={`/api/out?to=${encodeURIComponent(p.deeplink)}&pid=${p.id}`}
+                rel="nofollow sponsored"
+              >
+                구매하러 가기
+              </a>
+            </p>
+          </article>
         ))}
       </section>
 
