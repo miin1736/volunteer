@@ -162,42 +162,208 @@
 
 ---
 
-## 현재 프로젝트 구조
+# 프로젝트 구조 및 핵심 개념 설명
+
+## 📁 디렉터리 구조
+
+### app - Next.js 애플리케이션 계층
+```
+app/
+├── (ewall)/                    # Route 그룹 (URL에 포함 안 됨)
+│   └── [brand]/[category]/     # 동적 라우팅: 브랜드×카테고리 랜딩
+│       ├── page.tsx            # 상품 목록 페이지
+│       └── [slug]/page.tsx     # 상품 상세 페이지
+├── api/
+│   ├── alerts/route.ts         # 알림 CRUD API
+│   └── out/route.ts            # 아웃바운드 리다이렉트 + 클릭 트래킹
+├── layout.tsx                  # 루트 레이아웃
+├── page.tsx                    # 홈페이지
+└── sitemap.ts                  # 동적 사이트맵 생성
+```
+
+**핵심 개념:**
+- **App Router**: Next.js 13+ 라우팅 시스템. 파일 시스템 기반.
+- **Dynamic Routes**: `[brand]`, `[category]`, `[slug]`는 URL 파라미터로 동적 경로 생성.
+- **Route Groups**: `(ewall)`은 URL 구조에 영향 없이 폴더 구조만 정리.
+- **generateStaticParams**: 빌드 타임에 정적 페이지를 미리 생성 (SSG).
+
+---
+
+### lib - 비즈니스 로직 & 유틸리티
+```
+lib/
+├── attributes/
+│   └── index.ts               # 속성 정규화 규칙 (다운비율, 충전재 등)
+├── brands.ts                  # 브랜드×카테고리 조합 생성 (데이터 기반)
+├── log.ts                     # JSONL 로깅 헬퍼
+├── search.ts                  # 상품 검색/필터링 로직
+├── seo.ts                     # JSON-LD 스키마 생성
+└── types.ts                   # TypeScript 타입 정의
+```
+
+**핵심 개념:**
+- **Normalization**: 다양한 소스의 데이터를 통일된 형식으로 변환.
+- **JSON-LD**: 구조화된 데이터 마크업 (Google 검색 최적화).
+- **Server-side only**: lib는 서버에서만 실행 (Node.js API 사용 가능).
+
+---
+
+### scripts - 배치 작업 & 크론
+```
+scripts/
+├── cron/
+│   ├── syncOffers.ts          # 가격/재고 동기화 + 변동 감지
+│   └── rollupClicks.ts        # 클릭 데이터 일일 집계
+├── smoke/
+│   └── filters.ts             # 필터 기능 스모크 테스트
+├── parseFeeds.ts              # 피드 파서 (정규화 + 스냅샷 생성)
+└── tsconfig.scripts.json      # 스크립트 전용 TS 설정
+```
+
+**핵심 개념:**
+- **ESM (ECMAScript Modules)**: `import/export` 사용. Node.js 네이티브 모듈 시스템.
+- **ts-node/esm**: TypeScript를 직접 실행하는 런타임.
+- **Batch Job**: 주기적으로 실행되는 백그라운드 작업 (크론).
+- **Smoke Test**: 기본 동작 확인용 간단한 테스트.
+
+---
+
+### data & `/out` - 데이터 레이어
+```
+data/
+└── sample-products.json       # 샘플 상품 데이터
+
+out/                           # 생성된 데이터 (gitignore)
+├── products.normalized.json   # 정규화된 스냅샷
+├── alerts.json/jsonl          # 알림 저장소
+├── emails.queue.jsonl         # 발송 대기 이메일 큐 (dry-run)
+├── clicks.daily.json          # 클릭 데이터 롤업
+└── logs/
+    └── normalize.jsonl        # 정규화 실패 로그
+```
+
+**핵심 개념:**
+- **JSONL (JSON Lines)**: 한 줄에 하나의 JSON 객체. 로그/스트림에 최적.
+- **Snapshot**: 특정 시점의 전체 데이터 스냅샷 (비교/롤백용).
+- **Queue**: 비동기 작업 대기열 (이메일 발송 등).
+
+---
+
+### components - React 컴포넌트
+```
+components/
+└── Filters.tsx                # 필터 UI (클라이언트 컴포넌트)
+```
+
+**핵심 개념:**
+- **Client Component**: `"use client"` 지시어. 브라우저에서 인터랙티브 동작.
+- **Server Component**: 기본값. 서버에서 렌더링, JS 번들에 포함 안 됨.
+
+---
+
+### db - 데이터베이스 스키마
+```
+db/
+└── schema.sql                 # contact, alert, click 테이블 정의
+```
+
+**핵심 개념:**
+- **Schema**: 데이터 구조 정의 (현재는 파일 백엔드, 추후 DB 마이그레이션용).
+
+---
+
+### emails - 이메일 템플릿
+```
+emails/
+└── price-drop.html            # 가격 하락 알림 HTML 템플릿
+```
+
+---
+
+### workflows - CI/CD
+```
+.github/workflows/
+└── ewall-smoke.yml            # GitHub Actions 워크플로
+```
+
+**핵심 개념:**
+- **Matrix Build**: 여러 Node 버전에서 병렬 테스트.
+- **Artifact Upload**: 실패 시 로그/HTML 저장.
+- **Smoke Test**: 빌드/라우트/JSON-LD/파서 기본 동작 검증.
+
+---
+
+## 🔑 필수 개념 요약
+
+### 1. **Next.js App Router**
+- 파일 기반 라우팅: `app/[brand]/[category]/page.tsx` → `/BrandA/down`
+- SSG (Static Site Generation): `generateStaticParams`로 빌드 타임 생성
+- ISR (Incremental Static Regeneration): `revalidate`로 주기적 재생성
+
+### 2. **TypeScript ESM**
+- `.ts` 확장자 import: `from "../lib/log.js"` (런타임에 `.js`로 해석)
+- tsconfig.json: 컴파일 옵션 (module, moduleResolution 등)
+- Named Export vs Default Export: ESM은 named export 권장
+
+### 3. **데이터 파이프라인**
+```
+원본 피드 → parseFeeds.ts → 정규화 → out/products.normalized.json
+                ↓
+         lib/attributes (규칙 적용)
+                ↓
+         실패 로그 → out/logs/normalize.jsonl
+```
+
+### 4. **알림 시스템**
+```
+사용자 조건 저장 (API) → syncOffers.ts (변동 감지) → emails.queue.jsonl
+                                                    ↓
+                                            (추후) 실제 발송
+```
+
+### 5. **SEO 최적화**
+- JSON-LD: 구조화된 데이터 (Product 스키마)
+- Sitemap: 검색엔진 크롤링 최적화
+- Dynamic Meta: 브랜드×카테고리별 맞춤 메타 태그
+
+### 6. **CI/CD 체크리스트**
+- ✅ Typecheck (TypeScript 오류)
+- ✅ Build (Next.js 빌드 성공)
+- ✅ Route 200 (핵심 페이지 접근)
+- ✅ JSON-LD 검증 (스키마 필수 필드)
+- ✅ Parser Smoke (데이터 변환 성공)
+- ✅ Filter Smoke (속성 필터 동작)
+
+---
+
+## 🔄 데이터 흐름 요약
 
 ```
-volunteer/
-├── app/
-│   ├── (ewall)/              # E wall 랜딩 페이지
-│   │   └── [brand]/[category]/
-│   │       └── page.tsx      # 동적 브랜드×카테고리 페이지
-│   ├── api/
-│   │   └── out/              # 아웃바운드 트래킹
-│   ├── layout.tsx
-│   ├── page.tsx
-│   ├── robots.ts             # SEO robots.txt
-│   └── sitemap.ts            # SEO sitemap
-├── components/
-│   └── Filters.tsx           # 필터 UI 컴포넌트
-├── data/
-│   └── sample-products.json  # 샘플 상품 데이터
-├── db/
-│   └── schema.sql            # 데이터베이스 스키마
-├── emails/
-│   └── price-drop.html       # 가격 하락 알림 템플릿
-├── lib/
-│   ├── types.ts              # TypeScript 타입 정의
-│   ├── seo.ts                # SEO 헬퍼 함수
-│   └── search.ts             # 검색/필터링 로직
-├── scripts/
-│   ├── cron/
-│   │   └── syncOffers.ts     # 오퍼 동기화 (stub)
-│   ├── parseFeeds.ts         # 피드 파서
-│   ├── smoke.local.sh        # 로컬 스모크 테스트 (bash)
-│   └── smoke.local.ps1       # 로컬 스모크 테스트 (PowerShell)
-└── .github/
-    └── workflows/
-        └── ewall-smoke.yml   # CI 스모크 테스트
+1. 데이터 수집
+   외부 피드 → parseFeeds.ts → out/products.normalized.json
+
+2. 웹 제공
+   normalized.json → lib/search.ts (필터링) → app/[brand]/[category]/page.tsx
+
+3. 알림
+   사용자 조건 → alerts API → syncOffers.ts (diff) → emails.queue.jsonl
+
+4. 트래킹
+   사용자 클릭 → /api/out → .data/clicks.ndjson → rollupClicks.ts
 ```
+
+---
+
+## 🚀 주요 기술 스택
+
+- **Frontend**: Next.js 14 (App Router), React, TypeScript
+- **Backend**: Next.js API Routes, Node.js ESM
+- **Data**: JSON/JSONL (file-based MVP), 추후 PostgreSQL/Redis
+- **CI/CD**: GitHub Actions
+- **SEO**: JSON-LD, Sitemap, Dynamic Meta
+- **Testing**: Smoke tests (기능 검증)
+
+---
 
 ## 개발 로드맵
 
